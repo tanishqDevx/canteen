@@ -44,7 +44,7 @@ export function PaymentStatus({ status, paymentId, orderId, amount, onOrderAgain
           <>
             <div className="bg-muted p-4 rounded-md">
               <p className="text-sm">
-                Your order has been placed successfully. You will receive a confirmation shortly.
+                Your Order is in process.
               </p>
             </div>
             {items && items.length > 0 && (
@@ -73,7 +73,7 @@ export function PaymentStatus({ status, paymentId, orderId, amount, onOrderAgain
               </div>
               <div className="flex justify-between">
                 <span className="font-medium">Amount Paid:</span>
-                <span>₹{((amount * 0.02)+amount).toFixed(2)}</span>
+                <span>₹{(amount + 40).toFixed(2)}</span>
               </div>
             </div>
           </>

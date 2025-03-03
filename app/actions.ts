@@ -10,8 +10,6 @@ const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || ""
 // Create a Razorpay order
 export async function createOrder(amount: number) {
   try {
-    const finalAmount = Math.round(amount * 1.02) // Adding 2% to the amount
-
     const response = await fetch("https://api.razorpay.com/v1/orders", {
       method: "POST",
       headers: {
@@ -19,7 +17,7 @@ export async function createOrder(amount: number) {
         Authorization: `Basic ${Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64")}`,
       },
       body: JSON.stringify({
-        amount: finalAmount,
+        amount,
         currency: "INR",
         receipt: `receipt_${Date.now()}`,
       }),
@@ -75,3 +73,4 @@ export async function verifyPayment(params: {
     return { success: false, error: "Invalid payment signature" }
   }
 }
+

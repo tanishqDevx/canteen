@@ -6,6 +6,7 @@ import { Menu } from "@/components/menu"
 import { Cart } from "@/components/cart"
 import { PaymentStatus } from "@/components/payment-status"
 import { createOrder, verifyPayment } from "@/app/actions"
+import { Toaster } from "sonner"
 
 export type CartItem = {
   id: string
@@ -18,7 +19,6 @@ export type CartItem = {
 export type UserInfo = {
   name: string
   phone: string
-  address: string
 }
 
 export default function Home() {
@@ -53,7 +53,9 @@ export default function Home() {
   }
 
   const getTotalAmount = () => {
-    return cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
+    const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
+    const convenienceFee = subtotal * 0.02
+    return subtotal + convenienceFee
   }
 
   const handleUserSubmit = (data: UserInfo) => {
@@ -65,8 +67,11 @@ export default function Home() {
     if (!userInfo) return
 
     try {
-      const amount = getTotalAmount() * 100 // Razorpay uses amount in paise
-      const order = await createOrder(amount)
+      const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
+      const convenienceFee = subtotal * 0.02
+      const totalAmount = (subtotal + convenienceFee) * 100 // Razorpay uses amount in paise
+
+      const order = await createOrder(totalAmount)
 
       if (!order.id) {
         throw new Error("Failed to create order")
@@ -76,10 +81,10 @@ export default function Home() {
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: amount,
+        amount: totalAmount,
         currency: "INR",
         name: "Food Ordering",
-        description: "Food Order Payment",
+        description: "Food Order Payment (including 2% convenience fee)",
         order_id: order.id,
         handler: async (response: any) => {
           const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = response
@@ -92,8 +97,8 @@ export default function Home() {
               customerName: userInfo.name,
               phoneNumber: userInfo.phone,
               items: cartItems,
-              total: getTotalAmount(),
-              address: userInfo.address,
+              total: subtotal,
+              convenienceFee: convenienceFee,
             },
           })
 
@@ -111,7 +116,7 @@ export default function Home() {
           contact: userInfo.phone,
         },
         theme: {
-          color: "#3399cc",
+          color: "#000000",
         },
       }
 
@@ -138,6 +143,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen p-4 md:p-8 max-w-6xl mx-auto">
+      <Toaster position="top-center" />
       {step === "user-form" && <UserForm onSubmit={handleUserSubmit} />}
 
       {step === "menu" && <Menu addToCart={addToCart} cartItems={cartItems} onViewCart={() => setStep("cart")} />}
@@ -149,7 +155,7 @@ export default function Home() {
           removeFromCart={removeFromCart}
           onBackToMenu={() => setStep("menu")}
           onCheckout={handleCheckout}
-          total={getTotalAmount()}
+          total={cartItems.reduce((total, item) => total + item.price * item.quantity, 0)}
           userInfo={userInfo}
         />
       )}

@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import { motion } from "framer-motion"
 import type { UserInfo } from "@/app/page"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,11 +11,11 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface UserFormProps {
-  onSubmit: (data: Omit<UserInfo, "address">) => void
+  onSubmit: (data: UserInfo) => void
 }
 
 export function UserForm({ onSubmit }: UserFormProps) {
-  const [formData, setFormData] = useState<Omit<UserInfo, "address">>({
+  const [formData, setFormData] = useState<UserInfo>({
     name: "",
     phone: "",
   })
@@ -28,7 +29,6 @@ export function UserForm({ onSubmit }: UserFormProps) {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
 
-    // Clear error when user types
     if (errors[name as keyof typeof errors]) {
       setErrors((prev) => ({ ...prev, [name]: "" }))
     }
@@ -57,44 +57,79 @@ export function UserForm({ onSubmit }: UserFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-
     if (validateForm()) {
       onSubmit(formData)
     }
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="text-2xl text-center">Welcome to KMIT Canteen</CardTitle>
-        <CardDescription className="text-center">Please enter your details to continue</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
-            <Input id="name" name="name" value={formData.name} onChange={handleChange} placeholder="John Doe" />
-            {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
-          </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.5 }}
+    >
+      <Card className="w-full max-w-md mx-auto bg-card">
+        <CardHeader>
+          <CardTitle className="text-2xl text-center">Welcome to Food Ordering</CardTitle>
+          <CardDescription className="text-center">Please enter your details to continue</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <motion.div
+              className="space-y-2"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Label htmlFor="name">Full Name</Label>
+              <Input
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="John Doe"
+                className="bg-background"
+              />
+              {errors.name && (
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm text-red-500">
+                  {errors.name}
+                </motion.p>
+              )}
+            </motion.div>
 
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number</Label>
-            <Input
-              id="phone"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              placeholder="1234567890"
-              type="tel"
-            />
-            {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
-          </div>
+            <motion.div
+              className="space-y-2"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="1234567890"
+                type="tel"
+                className="bg-background"
+              />
+              {errors.phone && (
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm text-red-500">
+                  {errors.phone}
+                </motion.p>
+              )}
+            </motion.div>
 
-          <Button type="submit" className="w-full">
-            Continue to Menu
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+              <Button type="submit" className="w-full">
+                Continue to Menu
+              </Button>
+            </motion.div>
+          </form>
+        </CardContent>
+      </Card>
+    </motion.div>
   )
 }
+

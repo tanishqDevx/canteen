@@ -20,6 +20,7 @@ export async function sendDiscordNotification(orderDetails: OrderDetails) {
     return
   }
 
+  const convenienceFee = orderDetails.total * 0.02
   const itemsList = orderDetails.items
     .map((item) => `• ${item.quantity}x ${item.name} - ₹${item.price.toFixed(2)}`)
     .join("\n")
@@ -49,7 +50,7 @@ export async function sendDiscordNotification(orderDetails: OrderDetails) {
       },
       {
         name: "💰 Total Amount",
-        value: `₹${(orderDetails.total).toFixed(2)}`,
+        value: `Subtotal: ₹${orderDetails.total.toFixed(2)}\nConvenience Fee (2%): ₹${convenienceFee.toFixed(2)}\nTotal: ₹${(orderDetails.total + convenienceFee).toFixed(2)}`,
       },
     ],
     timestamp: new Date().toISOString(),
