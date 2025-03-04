@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { CartItem, UserInfo } from "@/app/page"
-import { Minus, Plus, ArrowLeft, Trash2 } from "lucide-react"
+import { Minus, Plus, ArrowLeft, Trash2, Loader2 } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 
 interface CartProps {
@@ -15,9 +15,19 @@ interface CartProps {
   onCheckout: () => void
   total: number
   userInfo: UserInfo | null
+  isProcessing?: boolean
 }
 
-export function Cart({ items, updateQuantity, removeFromCart, onBackToMenu, onCheckout, total, userInfo }: CartProps) {
+export function Cart({
+  items,
+  updateQuantity,
+  removeFromCart,
+  onBackToMenu,
+  onCheckout,
+  total,
+  userInfo,
+  isProcessing = false,
+}: CartProps) {
   const convenienceFee = total * 0.02
 
   const itemVariants = {
@@ -34,7 +44,7 @@ export function Cart({ items, updateQuantity, removeFromCart, onBackToMenu, onCh
       className="container mx-auto max-w-3xl"
     >
       <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="flex items-center mb-6">
-        <Button variant="ghost" onClick={onBackToMenu} className="p-0 mr-2">
+        <Button variant="ghost" onClick={onBackToMenu} className="p-0 mr-2" disabled={isProcessing}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Menu
         </Button>
@@ -49,7 +59,9 @@ export function Cart({ items, updateQuantity, removeFromCart, onBackToMenu, onCh
         >
           <Card className="text-center p-8">
             <p className="mb-4">Your cart is empty</p>
-            <Button onClick={onBackToMenu}>Browse Menu</Button>
+            <Button onClick={onBackToMenu} disabled={isProcessing}>
+              Browse Menu
+            </Button>
           </Card>
         </motion.div>
       ) : (
@@ -90,6 +102,7 @@ export function Cart({ items, updateQuantity, removeFromCart, onBackToMenu, onCh
                               variant="outline"
                               size="icon"
                               onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              disabled={isProcessing}
                             >
                               <Minus className="h-4 w-4" />
                             </Button>
@@ -107,6 +120,7 @@ export function Cart({ items, updateQuantity, removeFromCart, onBackToMenu, onCh
                               variant="outline"
                               size="icon"
                               onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              disabled={isProcessing}
                             >
                               <Plus className="h-4 w-4" />
                             </Button>
@@ -117,6 +131,7 @@ export function Cart({ items, updateQuantity, removeFromCart, onBackToMenu, onCh
                               size="icon"
                               onClick={() => removeFromCart(item.id)}
                               className="text-red-500"
+                              disabled={isProcessing}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -171,9 +186,16 @@ export function Cart({ items, updateQuantity, removeFromCart, onBackToMenu, onCh
             transition={{ delay: 0.3 }}
             className="flex justify-end"
           >
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button onClick={onCheckout} size="lg" className="px-8">
-                Proceed to Payment
+            <motion.div whileHover={{ scale: isProcessing ? 1 : 1.05 }} whileTap={{ scale: isProcessing ? 1 : 0.95 }}>
+              <Button onClick={onCheckout} size="lg" className="px-8" disabled={isProcessing}>
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  "Proceed to Payment"
+                )}
               </Button>
             </motion.div>
           </motion.div>

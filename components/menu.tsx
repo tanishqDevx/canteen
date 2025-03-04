@@ -77,7 +77,6 @@ export function Menu({ addToCart, cartItems, onViewCart }: MenuProps) {
     // Show toast notification
     toast(`Added 1x ${item.name} to cart`, {
       description: "Click 'View Cart' to checkout",
-      duration: 3000,
       action: {
         label: "View Cart",
         onClick: onViewCart,

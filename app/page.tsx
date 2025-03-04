@@ -7,6 +7,7 @@ import { Cart } from "@/components/cart"
 import { PaymentStatus } from "@/components/payment-status"
 import { createOrder, verifyPayment } from "@/app/actions"
 import { Toaster } from "sonner"
+import { toast } from "sonner"
 
 export type CartItem = {
   id: string
@@ -28,6 +29,9 @@ export default function Home() {
   const [orderId, setOrderId] = useState<string | null>(null)
   const [paymentId, setPaymentId] = useState<string | null>(null)
   const [paymentStatus, setPaymentStatus] = useState<"success" | "failed" | null>(null)
+  const [orderDetails, setOrderDetails] = useState<any>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [receiptId, setReceiptId] = useState<string | null>(null)
 
   const addToCart = (item: CartItem) => {
     setCartItems((prev) => {
@@ -64,52 +68,67 @@ export default function Home() {
   }
 
   const handleCheckout = async () => {
-    if (!userInfo) return
+    if (!userInfo || cartItems.length === 0) {
+      toast.error("Please add items to your cart")
+      return
+    }
 
     try {
-      const subtotal = cartItems.reduce((total, item) => total + item.price * item.quantity, 0)
-      const convenienceFee = subtotal * 0.02
-      const totalAmount = (subtotal + convenienceFee) * 100 // Razorpay uses amount in paise
+      setIsProcessing(true)
 
-      const order = await createOrder(totalAmount)
+      // Create order on the server
+      const orderResponse = await createOrder({
+        customerName: userInfo.name,
+        phoneNumber: userInfo.phone,
+        items: cartItems.map((item) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+      })
 
-      if (!order.id) {
+      if (!orderResponse.orderId) {
         throw new Error("Failed to create order")
       }
 
-      setOrderId(order.id)
+      setOrderId(orderResponse.orderId)
+      setReceiptId(orderResponse.receiptId)
 
+      // Initialize Razorpay with only the order ID from the server
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: totalAmount,
-        currency: "INR",
+        key: orderResponse.keyId,
+        order_id: orderResponse.orderId,
         name: "Food Ordering",
-        description: "Food Order Payment (including 2% convenience fee)",
-        order_id: order.id,
+        description: "Food Order Payment",
         handler: async (response: any) => {
           const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = response
 
-          const verification = await verifyPayment({
-            paymentId: razorpay_payment_id,
-            orderId: razorpay_order_id,
-            signature: razorpay_signature,
-            orderDetails: {
-              customerName: userInfo.name,
-              phoneNumber: userInfo.phone,
-              items: cartItems,
-              total: subtotal,
-              convenienceFee: convenienceFee,
-            },
-          })
+          try {
+            const verification = await verifyPayment({
+              paymentId: razorpay_payment_id,
+              orderId: razorpay_order_id,
+              signature: razorpay_signature,
+              receiptId: orderResponse.receiptId,
+            })
 
-          if (verification.success) {
-            setPaymentId(razorpay_payment_id)
-            setPaymentStatus("success")
-          } else {
+            if (verification.success) {
+              setPaymentId(razorpay_payment_id)
+              setPaymentStatus("success")
+              setOrderDetails(verification.orderDetails)
+            } else {
+              console.error("Payment verification failed:", verification.error)
+              setPaymentStatus("failed")
+              toast.error(verification.error || "Payment verification failed")
+            }
+          } catch (error) {
+            console.error("Error during payment verification:", error)
             setPaymentStatus("failed")
+            toast.error("An error occurred during payment verification")
+          } finally {
+            setStep("payment-status")
+            setIsProcessing(false)
           }
-
-          setStep("payment-status")
         },
         prefill: {
           name: userInfo.name,
@@ -118,6 +137,12 @@ export default function Home() {
         theme: {
           color: "#000000",
         },
+        modal: {
+          ondismiss: () => {
+            setIsProcessing(false)
+            toast.info("Payment cancelled")
+          },
+        },
       }
 
       const paymentObject = new (window as any).Razorpay(options)
@@ -125,7 +150,8 @@ export default function Home() {
     } catch (error) {
       console.error("Payment error:", error)
       setPaymentStatus("failed")
-      setStep("payment-status")
+      setIsProcessing(false)
+      toast.error("Failed to initialize payment. Please try again.")
     }
   }
 
@@ -137,13 +163,15 @@ export default function Home() {
     document.body.appendChild(script)
 
     return () => {
-      document.body.removeChild(script)
+      if (document.body.contains(script)) {
+        document.body.removeChild(script)
+      }
     }
   }, [])
 
   return (
     <main className="min-h-screen p-4 md:p-8 max-w-6xl mx-auto">
-      <Toaster position="top-center" />
+      <Toaster position="top-center" richColors />
       {step === "user-form" && <UserForm onSubmit={handleUserSubmit} />}
 
       {step === "menu" && <Menu addToCart={addToCart} cartItems={cartItems} onViewCart={() => setStep("cart")} />}
@@ -157,6 +185,7 @@ export default function Home() {
           onCheckout={handleCheckout}
           total={cartItems.reduce((total, item) => total + item.price * item.quantity, 0)}
           userInfo={userInfo}
+          isProcessing={isProcessing}
         />
       )}
 
@@ -165,14 +194,17 @@ export default function Home() {
           status={paymentStatus}
           paymentId={paymentId}
           orderId={orderId}
-          amount={getTotalAmount()}
-          items={cartItems}
+          amount={orderDetails?.total || 0}
+          convenienceFee={orderDetails?.convenienceFee || 0}
+          items={orderDetails?.items || cartItems}
           onOrderAgain={() => {
             setCartItems([])
             setStep("menu")
             setPaymentStatus(null)
             setPaymentId(null)
             setOrderId(null)
+            setOrderDetails(null)
+            setReceiptId(null)
           }}
         />
       )}
